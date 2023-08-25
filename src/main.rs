@@ -1,8 +1,8 @@
-use std::any::{Any, TypeId};
+
 //use std::arch::x86_64::_mm512_scalef_round_pd;
-use std::os::unix::process;
-use std::ptr::{null, self};
-use std::{env, fs, io};
+
+
+use std::{env, io};
 use std::io::prelude::*;
 use std::fs::File;
 static mut hadError: bool = false;
@@ -16,7 +16,7 @@ fn main() {
         println!("Usage: rlox [script]");
     }else if args.len() == 2 {
         //println!("TUTAJ PATZRZ {}",args[1]);
-        let mut buffer = &args[1];
+        let buffer = &args[1];
         run_file(buffer);
     }else{
         run_prompt();
@@ -30,7 +30,7 @@ fn run_file(_path : &String) -> () {
     //println!("GOWNO w plynie skurwysynie {}", contents);
     run(&contents);
     unsafe{
-        if(hadError){
+        if hadError {
             std::process::exit(0);
         }
     }
@@ -52,8 +52,8 @@ fn run(_source : &String) -> () {
     //println!("HELLO FROM RUN");
 
     //let stream: proc_macro::TokenStream = _source.parse()
-    let mut s:String =_source.to_string();
-    let mut bruh = s.split(" ");
+    let s:String =_source.to_string();
+    let bruh = s.split(" ");
     for i in bruh {
         println!("{}",i);
     }
