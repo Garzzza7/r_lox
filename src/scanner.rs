@@ -1,7 +1,9 @@
+use std::any::Any;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display};
+use std::ptr::null;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub enum TokenType {
     // Single-character tokens.
     LEFT_PAREN,
@@ -50,12 +52,15 @@ pub enum TokenType {
     WHILE,
 
     EOF,
+
+    //Nothing,
+    NULL,
 }
 
 #[derive(Debug, Clone)]
 pub enum Literal {
-    Indentifier(String),
-    Str(String),
+    Indentifier(Vec<u8>),
+    Str(Vec<u8>),
     Number(f64),
 }
 
@@ -70,10 +75,10 @@ pub struct Token {
 impl Default for Token {
     fn default() -> Token {
         Token {
-            ttype: TokenType::EOF,
+            ttype: TokenType::NULL,
             lexeme: Vec::new(),
             literal: None,
-            line: 0,
+            line: 1,
         }
     }
 }
@@ -104,14 +109,15 @@ impl Debug for Token {
     }
 }
 
-struct Scanner {
+pub struct Scanner {
     source: Vec<u8>,
     tokens: Vec<Token>,
     start: usize,
     current: usize,
     line: usize,
-    keywords: HashMap<String, TokenType>,
+    keywords: HashMap<Vec<u8>, TokenType>,
 }
+
 impl Default for Scanner {
     fn default() -> Scanner {
         Scanner {
@@ -120,33 +126,33 @@ impl Default for Scanner {
             start: 0,
             current: 0,
             line: 1,
-            keywords: vec![
-                ("and", TokenType::AND),
-                ("class", TokenType::CLASS),
-                ("else", TokenType::ELSE),
-                ("false", TokenType::FALSE),
-                ("for", TokenType::FOR),
-                ("fun", TokenType::FUN),
-                ("if", TokenType::IF),
-                ("nil", TokenType::NIL),
-                ("or", TokenType::OR),
-                ("print", TokenType::PRINT),
-                ("return", TokenType::RETURN),
-                ("super", TokenType::SUPER),
-                ("this", TokenType::THIS),
-                ("true", TokenType::TRUE),
-                ("var", TokenType::VAR),
-                ("while", TokenType::WHILE),
-            ]
-            .into_iter()
-            .map(|(k, v)| (String::from(k), v))
-            .collect(),
+            keywords: HashMap::from([
+                ("and".to_string().into_bytes(), TokenType::AND),
+                ("class".to_string().into_bytes(), TokenType::CLASS),
+                ("else".to_string().into_bytes(), TokenType::ELSE),
+                ("false".to_string().into_bytes(), TokenType::FALSE),
+                ("for".to_string().into_bytes(), TokenType::FOR),
+                ("fun".to_string().into_bytes(), TokenType::FUN),
+                ("if".to_string().into_bytes(), TokenType::IF),
+                ("nil".to_string().into_bytes(), TokenType::NIL),
+                ("or".to_string().into_bytes(), TokenType::OR),
+                ("print".to_string().into_bytes(), TokenType::PRINT),
+                ("return".to_string().into_bytes(), TokenType::RETURN),
+                ("super".to_string().into_bytes(), TokenType::SUPER),
+                ("this".to_string().into_bytes(), TokenType::THIS),
+                ("true".to_string().into_bytes(), TokenType::TRUE),
+                ("var".to_string().into_bytes(), TokenType::VAR),
+                ("while".to_string().into_bytes(), TokenType::WHILE),
+            ]),
+            //.into_iter()
+            //.map(|(k, v)| (String::from(k), v))
+            //.collect(),
         }
     }
 }
 
 impl Scanner {
-    fn scan_tokens(&mut self) {
+    pub fn scan_tokens(&mut self) {
         loop {
             if !self.is_at_end() {
                 break;
@@ -167,9 +173,12 @@ impl Scanner {
         //newvec=self.tokens;
         //newvec
     }
+
     fn is_at_end(&mut self) -> bool {
-        self.current >= self.source.len().try_into().unwrap()
+        self.current >= self.source.len()
+        //self.current >= self.source.len().try_into().unwrap()
     }
+
     fn scan_token(&mut self) -> () {
         let c: char = self.advance();
         match c {
@@ -240,41 +249,45 @@ impl Scanner {
                 } else if Scanner::is_alpha(c) {
                     self.indentifier();
                 } else {
-                    print!("Unexpected character at line {}", self.line);
+                    println!("Unexpected character {} at line {}", c, self.line);
                 }
             }
         }
     }
+
     fn is_alpha_numeric(c: char) -> bool {
         Scanner::is_alpha(c) || Scanner::is_digit(c)
     }
+
     fn is_alpha(c: char) -> bool {
         (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
     }
+
     fn indentifier(&mut self) -> () {
         while Scanner::is_alpha_numeric(self.peek()) {
             self.advance();
         }
 
-        let val = String::from_utf8(self.source[self.start..self.current].to_vec()).unwrap();
+        let literal_val = self.source[self.start..self.current].to_vec();
 
-        let token_type: TokenType = match self.keywords.get(&val) {
-            Some(kw_token_type) => kw_token_type.clone(),
+        let token_type = match self.keywords.get(&literal_val) {
+            Some(tt) => *tt,
             None => TokenType::IDENTIFIER,
         };
 
         match token_type {
-            TokenType::IDENTIFIER => {
-                self.add_token_literal(TokenType::IDENTIFIER, Some(Literal::Indentifier(val)))
-            } // book doesn't do this. why not?}
+            TokenType::IDENTIFIER => self.add_token_literal(
+                TokenType::IDENTIFIER,
+                Some(Literal::Indentifier(literal_val)),
+            ), // book doesn't do this. why not?
             _ => self.add_token(token_type),
         }
-
-        self.add_token(TokenType::IDENTIFIER);
     }
+
     fn is_digit(c: char) -> bool {
         c >= '0' && c <= '9'
     }
+
     fn number(&mut self) -> () {
         while Scanner::is_digit(self.peek()) {
             self.advance();
@@ -285,18 +298,21 @@ impl Scanner {
                 self.advance();
             }
         }
+        //TODO: Check this
         let val: f64 = String::from_utf8(self.source[self.start..self.current].to_vec())
             .unwrap()
             .parse()
             .unwrap();
         self.add_token_literal(TokenType::NUMBER, Some(Literal::Number(val)));
     }
+
     fn peek_next(&mut self) -> char {
         if self.current + 1 >= self.source.len() {
             return '\0';
         }
         char::from(self.source[self.current + 1])
     }
+
     fn string(&mut self) -> () {
         while self.peek() != '"' && !self.is_at_end() {
             if self.peek() == '\n' {
@@ -306,19 +322,19 @@ impl Scanner {
                 println!("Unterminated string at line {}", self.line);
             }
             self.advance();
-            let value = self.source[self.start + 1..self.current - 1].to_vec();
-            self.add_token_literal(
-                TokenType::STRING,
-                Some(Literal::Str(String::from_utf8(value).unwrap())),
-            );
+            let value: Vec<u8> = self.source[self.start + 1..self.current - 1].to_vec();
+            //TODO: make sure that this literal actually works
+            self.add_token_literal(TokenType::STRING, Some(Literal::Str(value)));
         }
     }
+
     fn peek(&mut self) -> char {
         if self.is_at_end() {
             return '\0';
         }
         return char::from(self.source[self.current]);
     }
+
     fn matches(&mut self, expected: char) -> bool {
         if self.is_at_end() {
             return false;
@@ -329,18 +345,21 @@ impl Scanner {
         self.current += 1;
         true
     }
+
     fn add_token(&mut self, tt: TokenType) -> () {
-        self.add_token_literal(tt, None)
+        self.add_token_literal(tt, None);
     }
-    fn add_token_literal(&mut self, tt: TokenType, literal: Option<Literal>) -> () {
-        let text = self.source[self.start..self.current].to_vec();
+
+    fn add_token_literal(&mut self, tt: TokenType, lit: Option<Literal>) -> () {
+        let text: Vec<u8> = self.source[self.start..self.current].to_vec();
         self.tokens.push(Token {
             ttype: tt,
             lexeme: text,
-            literal: literal,
+            literal: lit,
             line: self.line,
         })
     }
+
     //fn addToken(tt: TokenType, literal: &dyn Any) -> () {
     //    Self::addToken(tt)
     //}

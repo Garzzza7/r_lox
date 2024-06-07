@@ -1,13 +1,12 @@
 //use std::arch::x86_64::_mm512_scalef_round_pd;
 
+mod scanner;
+use crate::scanner::*;
 use std::fs::{self, File};
 use std::io::prelude::*;
 use std::{env, io};
-use std::path::Path;
 
 static mut HAD_ERROR: bool = false;
-
-mod scanner;
 
 fn main() {
     let args: Vec<_> = env::args().collect();
@@ -18,9 +17,9 @@ fn main() {
     } else if args.len() == 2 {
         //println!("TUTAJ PATZRZ {}",args[1]);
         /* let buffer = &args[1] */
-        if fs::metadata(&args[1]).is_ok(){
-        run_file(&args[1]);
-        }else {
+        if fs::metadata(&args[1]).is_ok() {
+            run_file(&args[1]);
+        } else {
             println!("Given file does not exist.\nAborting.");
         }
     } else {
@@ -41,6 +40,7 @@ fn run_file(_path: &String) -> () {
         }
     }
 }
+
 fn run_prompt() -> () {
     let stdin = io::stdin();
     let mut line = String::new();
@@ -57,6 +57,7 @@ fn run_prompt() -> () {
         }
     }
 }
+
 fn run(_source: &String) -> () {
     unsafe {
         if HAD_ERROR == true {
@@ -64,17 +65,20 @@ fn run(_source: &String) -> () {
         }
     }
     let token = _source.split_ascii_whitespace();
-    // let token = _source.split_whitespace();
-    for i in token {
-        println!("{}", i);
+    //let token = _source.as_bytes();
+    let mut _scan: Scanner;
+    for _i in token {
+        println!("{}", _i);
     }
 }
 
+#[warn(dead_code)]
 fn error(line: i32, message: &String) -> () {
     let wher: String = String::from("");
     report(line, &wher, &message);
 }
 
+#[warn(dead_code)]
 fn report(line: i32, wher: &String, message: &String) -> () {
     println!("[line {} ] Error {} : {}", line, wher, message);
     unsafe {
