@@ -52,9 +52,6 @@ pub enum TokenType {
     WHILE,
 
     EOF,
-
-    //Nothing,
-    NULL,
 }
 
 #[derive(Debug, Clone)]
@@ -70,17 +67,6 @@ pub struct Token {
     pub lexeme: Vec<u8>,
     pub literal: Option<Literal>,
     pub line: usize,
-}
-
-impl Default for Token {
-    fn default() -> Token {
-        Token {
-            ttype: TokenType::NULL,
-            lexeme: Vec::new(),
-            literal: None,
-            line: 1,
-        }
-    }
 }
 
 // impl Display for Option<Literal> {
@@ -107,6 +93,14 @@ impl Debug for Token {
             self.ttype, self.lexeme, self.literal, self.line
         )
     }
+}
+
+pub fn scan_tokens(input: String) -> Vec<Token> {
+    let mut scanner: Scanner = Default::default();
+
+    scanner.scan_tokens(input);
+
+    scanner.tokens
 }
 
 pub struct Scanner {
@@ -144,15 +138,13 @@ impl Default for Scanner {
                 ("var".to_string().into_bytes(), TokenType::VAR),
                 ("while".to_string().into_bytes(), TokenType::WHILE),
             ]),
-            //.into_iter()
-            //.map(|(k, v)| (String::from(k), v))
-            //.collect(),
         }
     }
 }
 
 impl Scanner {
-    pub fn scan_tokens(&mut self) {
+    fn scan_tokens(&mut self, _input: String) {
+        self.source = _input.into_bytes();
         loop {
             if !self.is_at_end() {
                 break;
@@ -168,13 +160,12 @@ impl Scanner {
             literal: None,
             line: self.line,
         });
-        //self.tokens
         //let mut newvec: Vec<Token>=Vec::new();
         //newvec=self.tokens;
         //newvec
     }
 
-    fn is_at_end(&mut self) -> bool {
+    fn is_at_end(&self) -> bool {
         self.current >= self.source.len()
         //self.current >= self.source.len().try_into().unwrap()
     }

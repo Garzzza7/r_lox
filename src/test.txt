@@ -1,1 +1,1 @@
-chuj penis pracie kutas
+var language = "lox";

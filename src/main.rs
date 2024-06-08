@@ -64,11 +64,13 @@ fn run(_source: &String) -> () {
             std::process::exit(65);
         }
     }
-    let token = _source.split_ascii_whitespace();
+    let tokens = scan_tokens(_source.to_string());
+    //println!("{}", _source.to_string());
+    //let tokens: Vec<Token> = scanner.tokens;
+    //let token = _source.split_ascii_whitespace();
     //let token = _source.as_bytes();
-    let mut _scan: Scanner;
-    for _i in token {
-        println!("{}", _i);
+    for _i in tokens {
+        println!("{:?}", _i);
     }
 }
 
